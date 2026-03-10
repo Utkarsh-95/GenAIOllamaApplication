@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Ask AI</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}" type="text/css"/>
+</head>
+<body>
+<header class="header">
+    <!-- Header Greetings -->
+    <h1 class="title">Hello, there</h1>
+    <p class="subtitle">How can I help you today?</p>
+</header>
+
+<!-- Chat List / Container -->
+<div class="chat-list">
+    <div class="chat-list message message-content" th:if="${response}">
+        <span class="message message-content text"><strong>Prompt:</strong></span>
+        <div class="text" th:text="${message}"></div>
+        <span class="message message-content text"><strong>AI Response:</strong></span>
+        <div class="text" th:text="${response}"></div>
+    </div>
+</div>
+
+<!-- Typing Area -->
+<div class="typing-area">
+    <form class="typing-form" method="get" th:action="@{/ask}">
+        <div class="input-wrapper">
+            <input class="typing-input" name="message" placeholder="Enter a prompt here" required type="text"/>
+            <button class="icon material-symbols-rounded" id="send-message-button" type="submit">send</button>
+        </div>
+        <div class="action-buttons">
+            <span class="icon material-symbols-rounded" id="theme-toggle-button">dark_mode</span>
+        </div>
+    </form>
+    <p class="disclaimer-text">
+        LLM may display inaccurate info, including about people, so double-check its responses.
+    </p>
+</div>
+
+<script th:src="@{/js/script.js}" type="text/javascript"></script>
+</body>
+</html>

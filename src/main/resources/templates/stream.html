@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <title>AI Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        #aiResponse {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            word-break: break-word;
+            white-space: normal;
+            text-align: justify;
+            text-justify: inter-word;
+            hyphens: auto;
+        }
+    </style>
+</head>
+
+<body class="bg-[#131314] text-[#e3e3e3] font-sans h-screen flex flex-col">
+
+<header class="p-4 text-xl font-medium text-gray-300">
+    PuchoGPT <span class="text-xs bg-gray-700 px-2 py-1 rounded ml-2">1.0</span>
+</header>
+
+<main class="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 max-w-3xl mx-auto w-full">
+
+    <div th:if="${#lists.isEmpty(chatHistory)}" class="mt-20 text-center">
+        <h1 class="text-4xl font-bold bg-gradient-to-r from-blue-400 to-red-400 bg-clip-text text-transparent">
+            Hello, there
+        </h1>
+        <p class="text-gray-400 mt-4">How can I help with your code today?</p>
+    </div>
+
+    <div class="space-y-6 max-w-3xl mx-auto w-full p-4">
+
+        <div id="userMessage" th:if="${message}" class="flex justify-end">
+            <div class="bg-[#2b2b2b] px-4 py-2 rounded-2xl max-w-[80%] break-words" th:text="${message}">
+                User prompt will appear here
+            </div>
+        </div>
+
+        <div id="aiResponseContainer" th:if="${aiResponse}" class="flex justify-start">
+            <div class="flex items-start space-x-3 w-full max-w-[90%]">
+                <div
+                        class="w-8 h-8 rounded-full bg-blue-600 flex-shrink-0 flex items-center justify-center text-xs">
+                    AI</div>
+
+                <div id="aiResponse" class="pt-1 text-sm leading-relaxed flex-1" th:text="${aiResponse}">
+                    AI response will appear here
+                </div>
+            </div>
+        </div>
+
+    </div>
+</main>
+
+<footer class="p-4 bg-[#131314]">
+    <div class="max-w-3xl mx-auto relative">
+
+        <form id="chatForm" th:action="@{/chat}" method="post" class="relative">
+            <input id="messageInput" type="text" name="message" required autocomplete="off" placeholder="Enter a prompt here"
+                   class="w-full bg-[#1e1f20] border-none rounded-full py-4 pl-6 pr-16 focus:ring-2 focus:ring-blue-500 outline-none text-white placeholder-gray-500">
+
+            <button id="sendBtn" type="submit"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full hover:bg-[#333537] transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                     stroke="currentColor" class="w-6 h-6 text-blue-400">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+                </svg>
+            </button>
+        </form>
+        <p class="text-[10px] text-center text-gray-500 mt-3">It may display inaccurate info, so double-check
+            its responses.</p>
+    </div>
+</footer>
+
+<script>
+    // JavaScript to handle streaming AI responses over SSE.
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('chatForm');
+        const input = document.getElementById('messageInput');
+        let aiResponseEl = document.getElementById('aiResponse');
+        const aiContainer = document.getElementById('aiResponseContainer');
+        const userMessage = document.getElementById('userMessage');
+        let evtSource;
+
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const message = input.value.trim();
+            if (!message) return;
+
+            // show user message
+            if (userMessage) {
+                userMessage.querySelector('div').textContent = message;
+            } else {
+                // create user message block if not present
+                const userDiv = document.createElement('div');
+                userDiv.className = 'flex justify-end';
+                userDiv.innerHTML = `<div class="bg-[#2b2b2b] px-4 py-2 rounded-2xl max-w-[80%] break-words">${message}</div>`;
+                document.querySelector('main .space-y-6').prepend(userDiv);
+            }
+
+            // prepare AI container
+            if (aiContainer) {
+                aiContainer.style.display = 'flex';
+                aiResponseEl.textContent = '';
+            } else {
+                const aiWrap = document.createElement('div');
+                aiWrap.className = 'flex justify-start';
+                aiWrap.innerHTML = `<div class="flex items-start space-x-3 w-full max-w-[90%]"><div class="w-8 h-8 rounded-full bg-blue-600 flex-shrink-0 flex items-center justify-center text-xs">AI</div><div id="aiResponse" class="pt-1 text-sm leading-relaxed flex-1"></div></div>`;
+                document.querySelector('main .space-y-6').prepend(aiWrap);
+                aiResponseEl = document.getElementById('aiResponse');
+            }
+
+            // close previous event source if any
+            if (evtSource) {
+                evtSource.close();
+            }
+
+            // encode message for URL
+            const url = `/chat/stream?message=${encodeURIComponent(message)}`;
+            evtSource = new EventSource(url);
+
+            evtSource.onmessage = function (event) {
+                // append incoming chunk
+                aiResponseEl.textContent += event.data;
+                // auto-scroll main
+                document.querySelector('main').scrollTop = document.querySelector('main').scrollHeight;
+            };
+
+            evtSource.onerror = function (err) {
+                console.error('SSE error', err);
+                evtSource.close();
+            };
+
+            // clear input
+            input.value = '';
+        });
+    });
+</script>
+
+</body>
+
+</html>
